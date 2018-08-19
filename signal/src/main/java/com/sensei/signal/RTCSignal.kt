@@ -53,4 +53,8 @@ object RTCSignal {
     fun disconnect() {
         socket.disconnect()
     }
+
+    fun sendMessage(message: Any) {
+        socket.emit(MESSAGE, message)
+    }
 }
