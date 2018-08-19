@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">RTCSignalExample</string>
+    <string name="sensei_rtc_signaling">Sensei RTC Signaling</string>
+</resources>
