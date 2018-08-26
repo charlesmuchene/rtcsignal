@@ -8,6 +8,8 @@ object RTCSignal {
 
     private val socket: Socket by lazy { IO.socket(initialize()) }
     private external fun initialize(): String
+    private var isInitialized = false
+    private var isConnected = false
 
     init {
         System.loadLibrary(configuration)
@@ -15,46 +17,44 @@ object RTCSignal {
     }
 
     fun initialize(id: String, signals: Signals) {
+        if (isInitialized) return
+        isInitialized = true
         socket.on(Socket.EVENT_CONNECT) {
-            Timber.d("Signalling Server: Connect")
             socket.emit(CREATE, id)
             signals.onConnected()
         }.on(CREATED) {
-            Timber.d("Signalling Server: created")
             signals.onCreated()
         }.on(FULL) {
-            Timber.d("Signalling Server: full")
             signals.onFull()
         }.on(JOIN) {
-            Timber.d("Signalling Server: join")
-            Timber.d("Signalling Server: Another peer made a request to join call")
-            Timber.d("Signalling Server: This peer is the initiator of call")
             signals.onJoin()
         }.on(JOINED) {
             signals.onJoined()
         }.on(LOG) { arguments ->
-            Timber.d("Logging server log")
-            arguments.forEach { Timber.d("Signalling Server: $it") }
             signals.onLog(arguments)
         }.on(MESSAGE) { arguments ->
-            Timber.d("Signalling Server: Got a message")
             arguments.forEach { Timber.d(it.toString()) }
             signals.onMessage(arguments)
         }.on(Socket.EVENT_DISCONNECT) {
-            Timber.d("Signalling Server: disconnect")
             signals.onDisconnected()
         }
     }
 
     fun connect() {
+        if (isConnected) return
+        isConnected = true
         socket.connect()
     }
 
     fun disconnect() {
-        socket.disconnect()
+        if (isConnected) socket.disconnect()
+        isConnected = false
     }
 
+    @Throws(IllegalStateException::class)
     fun sendMessage(message: Any) {
+        if (!isConnected)
+            throw IllegalStateException("Bad state! Did you forget to call initialize?")
         socket.emit(MESSAGE, message)
     }
 }
